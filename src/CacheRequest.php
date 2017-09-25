@@ -92,7 +92,10 @@ class CacheRequest {
 	 * @param string $date
 	 */
 	private function setModifiedSince($date) {
-		$this->modified_since = strtotime($date);
+		$time = strtotime($date);
+		if($time) {
+			$this->modified_since = $time;
+		}		
 	}
 	
 	/**
@@ -111,7 +114,10 @@ class CacheRequest {
 	 * @param unknown $date
 	 */
 	private function setNotModifiedSince($date) {
-		$this->not_modified_since= strtotime($date);
+		$time = strtotime($date);
+		if($time) {
+			$this->not_modified_since= $time;
+		}		
 	}
 	
 	
@@ -156,12 +162,10 @@ class CacheRequest {
 					$this->cache_only = true;
 					break;
 				case "max-age":
-					if($v) {
-						$this->max_age = (integer) $v;
-					}
+					$this->setMaxAge($v);
 					break;
 				case "max-stale":
-					$this->max_stale = ($v?(integer) $v:0);
+					$this->setMaxStaleAge($v);
 					break;
 				case "min-fresh":
 					if(!empty($p2[1])) {
@@ -173,10 +177,22 @@ class CacheRequest {
 	}
 	
 	/**
-	 * Indicates that the client is willing to accept a response whose age is no greater than the specified time in seconds. 
-	 * Unless max-stale directive is also included, the client is not willing to accept a stale response. 
+	 * Indicates that the client is willing to accept a response whose age is no greater than the specified time in seconds.
+	 * Unless max-stale directive is also included, the client is not willing to accept a stale response.
+	 * Value 0 tells caches (and user agents) the response is stale
+	 *
+	 * @return integer
+	 */
+	private function setMaxAge($value) {
+		//I believe max-age=0 simply tells caches (and user agents) the response is stale from the get-go and so they SHOULD revalidate the response
+		$age = (integer) $value;
+		$this->max_age = $age<0?0:$age;
+	}
+	
+	/**
+	 * Gets value of max-age cache-control directive.
 	 * 
-	 * @return integer 
+	 * @return integer|null
 	 */
 	public function getMaxAge() {
 		return $this->max_age;
@@ -189,6 +205,16 @@ class CacheRequest {
 	 * 
 	 * @return integer
 	 */
+	private function setMaxStaleAge($age) {
+		$age = (integer) $value;
+		$this->max_stale= $age<0?0:$age;
+	}
+	
+	/**
+	 * Gets max number of seconds until an entry becomes stale. If 0 
+	 *
+	 * @return integer|null
+	 */
 	public function getMaxStaleAge() {
 		return $this->max_stale;
 	}
@@ -197,6 +223,17 @@ class CacheRequest {
 	 * Indicates that the client is willing to accept a response whose freshness lifetime is no less than its current age plus the specified time in seconds.
 	 *
 	 * @return integer
+	 */
+	private function setMinFreshAge($value) {
+		$age = (integer) $value;
+		$this->min_fresh= $age<0?0:$age;
+	}
+	
+	
+	/**
+	 * Gets min number of seconds while an entry is fresh
+	 *
+	 * @return integer|null
 	 */
 	public function getMinFreshAge() {
 		return $this->min_fresh;
@@ -212,7 +249,7 @@ class CacheRequest {
 	}
 	
 	/**
-	 * PROXY: Checks if cache should not store anything about the client request or server response (to enforce privacy).
+	 * Checks if cache should not store anything about the client request or server response (to enforce privacy).
 	 * 
 	 * @return boolean
 	 */

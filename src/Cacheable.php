@@ -15,5 +15,5 @@ interface Cacheable {
 	 * 
 	 * @return integer
 	 */
-	function getLastModifiedTime();
+	function getTime();
 }
