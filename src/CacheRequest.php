@@ -18,6 +18,8 @@ class CacheRequest {
 	private $max_stale;
 	private $min_fresh;	
 	
+	private $validatable = false;
+	
 	/**
 	 * Triggers private setters to populate information about caching request 
 	 * 
@@ -26,21 +28,26 @@ class CacheRequest {
 	public function __construct() {
 		foreach($_SERVER as $name => $value) {
 			if (substr($name, 0, 5) == 'HTTP_') {
-				$name = str_replace(' ', '-', ucwords(strtolower(str_replace('_', ' ', substr($name, 5)))));
+				$name = str_replace(' ', '-', strtolower(str_replace('_', ' ', substr($name, 5))));
 				switch($name) {
 					case "if-match":
+						$this->validatable = true;
 						$this->setMatchingEtag($value);
 						break;
 					case "if-none-match":
+						$this->validatable = true;
 						$this->setNotMatchingEtag($value);
 						break;
 					case "if-modified-since":
+						$this->validatable = true;
 						$this->setModifiedSince($value);
 						break;
 					case "if-unmodified-since":
+						$this->validatable = true;
 						$this->setNotModifiedSince($value);
 						break;
 					case "cache-control":
+						$this->validatable = true;
 						$this->setCacheControl($value);
 						break;
 				}
@@ -276,6 +283,15 @@ class CacheRequest {
 	}
 	
 	/**
+	 * Checks if request included caching directives (and thus is subject to cache validation)
+	 * 
+	 * @return boolean
+	 */
+	public function isValidatable() {
+		return $this->validatable;
+	}
+	
+	/**
 	 * Validates etag if it's strong and single.
 	 * 
 	 * @param string $headerName
@@ -285,6 +301,7 @@ class CacheRequest {
 	 */
 	private function _validateEtag($headerName, $headerValue) {
 		$etag = trim(str_replace('"','',$headerValue));
+		$etag = str_replace(array("-gzip","-gunzip"),"",$etag); // hardcoding: remove gzip & gunzip added to each etag by apache2
 		if(!$etag || stripos($etag,"w/") !== false || stripos($etag,",") !== false) {
 			$exception = new CacheRequestException("Only strong single etags are supported");
 			$exception->setHeaderName($headerName);
@@ -303,7 +320,7 @@ class CacheRequest {
 	 * @return integer Local UNIX time that matches requested date.
 	 */
 	private function _validateDate($headerName, $headerValue) {
-		$time = strtotime($date);
+		$time = strtotime($headerValue);
 		if(!$time) {
 			$exception = new CacheRequestException("Date value is invalid");
 			$exception->setHeaderName($headerName);

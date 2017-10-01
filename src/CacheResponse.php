@@ -152,7 +152,7 @@ class CacheResponse {
 			$output["Age"] = $this->proxy_age;
 		}
 		if($this->etag) {
-			$output["ETag"] = $this->etag;
+			$output["ETag"] = '"'.$this->etag.'"';
 		}
 		if($this->date_expired) {
 			$output["Expires"] = $this->date_expired;
