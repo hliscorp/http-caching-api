@@ -1,4 +1,6 @@
 <?php
+require_once("CacheRequestException.php");
+
 /**
  * Encapsulates request caching headers logic. Feeds private setters based on headers received from client offers and offers 
  * public getters that correspond to each header received
@@ -18,6 +20,8 @@ class CacheRequest {
 	
 	/**
 	 * Triggers private setters to populate information about caching request 
+	 * 
+	 * @throws CacheRequestException If cache headers contain invalid values.
 	 */
 	public function __construct() {
 		foreach($_SERVER as $name => $value) {
@@ -51,9 +55,10 @@ class CacheRequest {
 	 * if the entity corresponding to the If-Match value (a single entity tag) is no longer a representation of that resource.
 	 * 
 	 * @param string $etag A string value or "*" (which means ALL)
+	 * @throws CacheRequestException If etag is not single and strong.
 	 */
 	private function setMatchingEtag($etag) {
-		$this->matching_etag = $etag;
+		$this->matching_etag = $this->_validateEtag("If-Match", $etag);
 	}
 	
 	/**
@@ -73,7 +78,7 @@ class CacheRequest {
 	 * @param string $etag
 	 */
 	private function setNotMatchingEtag($etag) {
-		$this->not_matching_etag = $etag;
+		$this->not_matching_etag = $this->_validateEtag("If-None-Match", $etag);
 	}
 	
 	/**
@@ -90,12 +95,10 @@ class CacheRequest {
 	 * any message-body. Otherwise server MAY perform the requested method (HTTP 200)
 	 * 
 	 * @param string $date
+	 * @throws CacheRequestException If etag is not single and strong.
 	 */
 	private function setModifiedSince($date) {
-		$time = strtotime($date);
-		if($time) {
-			$this->modified_since = $time;
-		}		
+		$this->modified_since = $this->_validateDate("If-Modified-Since", $date);
 	}
 	
 	/**
@@ -114,10 +117,7 @@ class CacheRequest {
 	 * @param unknown $date
 	 */
 	private function setNotModifiedSince($date) {
-		$time = strtotime($date);
-		if($time) {
-			$this->not_modified_since= $time;
-		}		
+		$this->not_modified_since= $this->_validateDate("If-Unmodified-Since", $date);
 	}
 	
 	
@@ -184,13 +184,11 @@ class CacheRequest {
 	 * @return integer
 	 */
 	private function setMaxAge($value) {
-		//I believe max-age=0 simply tells caches (and user agents) the response is stale from the get-go and so they SHOULD revalidate the response
-		$age = (integer) $value;
-		$this->max_age = $age<0?0:$age;
+		$this->max_age = $this->_validateNumber("Cache-Control: max-age", $value);
 	}
 	
 	/**
-	 * Gets value of max-age cache-control directive.
+	 * Gets value of max-age cache-control directive. Value 0 tells caches (and user agents) the response is stale
 	 * 
 	 * @return integer|null
 	 */
@@ -206,12 +204,11 @@ class CacheRequest {
 	 * @return integer
 	 */
 	private function setMaxStaleAge($age) {
-		$age = (integer) $value;
-		$this->max_stale= $age<0?0:$age;
+		$this->max_stale = $this->_validateNumber("Cache-Control: max-stale", $value);
 	}
 	
 	/**
-	 * Gets max number of seconds until an entry becomes stale. If 0 
+	 * Gets max number of seconds until an entry becomes stale. If 0, then the client is willing to accept a stale response of any age. 
 	 *
 	 * @return integer|null
 	 */
@@ -225,8 +222,7 @@ class CacheRequest {
 	 * @return integer
 	 */
 	private function setMinFreshAge($value) {
-		$age = (integer) $value;
-		$this->min_fresh= $age<0?0:$age;
+		$this->min_fresh= $this->_validateNumber("Cache-Control: min-fresh", $value);
 	}
 	
 	
@@ -274,5 +270,65 @@ class CacheRequest {
 	 */
 	public function isCacheOnly() {
 		return $this->cache_only;
+	}
+	
+	/**
+	 * Validates etag if it's strong and single.
+	 * 
+	 * @param string $headerName
+	 * @param string $headerValue
+	 * @throws CacheRequestException If etag fails validation.
+	 * @return string Value of valid etag.
+	 */
+	private function _validateEtag($headerName, $headerValue) {
+		$etag = trim(str_replace('"','',$headerValue));
+		if(!$etag || stripos($etag,"w/") !== false || stripos($etag,",") !== false) {
+			$exception = new CacheRequestException("Only strong single etags are supported");
+			$exception->setHeaderName($headerName);
+			$exception->setHeaderValue($headerValue);
+			throw $exception;
+		}
+		return $etag;
+	}
+	
+	/**
+	 * Validates http date header value
+	 * 
+	 * @param string $headerName
+	 * @param string $headerValue
+	 * @throws CacheRequestException If date fails validation.
+	 * @return integer Local UNIX time that matches requested date.
+	 */
+	private function _validateDate($headerName, $headerValue) {
+		$time = strtotime($date);
+		if(!$time) {
+			$exception = new CacheRequestException("Date value is invalid");
+			$exception->setHeaderName($headerName);
+			$exception->setHeaderValue($headerValue);
+			throw $exception;
+		}
+		return $time;
+	}
+	
+	/**
+	 * Validates numeric header value
+	 * 
+	 * @param string $headerName
+	 * @param string $headerValue
+	 * @throws CacheRequestException
+	 * @return integer Value of valid number.
+	 */
+	private function _validateNumber($headerName, $headerValue) {
+		if(!is_numeric($headerValue)) {
+			$exception = new CacheRequestException("Value must be a number");
+			$exception->setHeaderName($headerName);
+			$exception->setHeaderValue($headerValue);
+			throw $exception;
+		}
+		$output = (integer) $headerValue;
+		// overflow protection
+		if($output< 0) $output= -1;
+		if($output> 2147483648) $output= 2147483648;
+		return $output;
 	}
 }
