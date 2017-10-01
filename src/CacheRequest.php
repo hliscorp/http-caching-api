@@ -172,6 +172,9 @@ class CacheRequest {
 						$this->min_fresh = (integer) $v;
 					}
 					break;
+				case "s-maxage":
+					$this->setMaxStaleAge($v);
+					break;
 			}
 		}
 	}
