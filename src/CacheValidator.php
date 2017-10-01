@@ -114,7 +114,7 @@ class CacheValidator {
 		}
 		$etagValidatorMatches = ($noneMatch && ($noneMatch == "*" || $noneMatch == $cacheable->getEtag()));
 		$lastModifiedValidatorMatches = ($modifiedSince && ($modifiedSince > time() || $cacheable->getTime() > $modifiedSince?false:true));
-		if($noneMatch && $modifiedSince && !($etagValidatorMatches && $lastModifiedValidatorMatches)) {		
+		if($noneMatch && $modifiedSince && !($etagValidatorMatches && $lastModifiedValidatorMatches)) {	
 			return false;
 		} else if($noneMatch && !$etagValidatorMatches) {
 			return false;
