@@ -1,6 +1,4 @@
 <?php
-require_once("CacheRequestException.php");
-
 /**
  * Encapsulates request caching headers logic. Feeds private setters based on headers received from client offers and offers 
  * public getters that correspond to each header received
@@ -296,17 +294,13 @@ class CacheRequest {
 	 * 
 	 * @param string $headerName
 	 * @param string $headerValue
-	 * @throws CacheRequestException If etag fails validation.
-	 * @return string Value of valid etag.
+	 * @return string|null Value of valid etag or null if etag is empty / multiple / weak.
 	 */
 	private function _validateEtag($headerName, $headerValue) {
 		$etag = trim(str_replace('"','',$headerValue));
 		$etag = str_replace(array("-gzip","-gunzip"),"",$etag); // hardcoding: remove gzip & gunzip added to each etag by apache2
 		if(!$etag || stripos($etag,"w/") !== false || stripos($etag,",") !== false) {
-			$exception = new CacheRequestException("Only strong single etags are supported");
-			$exception->setHeaderName($headerName);
-			$exception->setHeaderValue($headerValue);
-			throw $exception;
+			return null;
 		}
 		return $etag;
 	}
@@ -316,16 +310,12 @@ class CacheRequest {
 	 * 
 	 * @param string $headerName
 	 * @param string $headerValue
-	 * @throws CacheRequestException If date fails validation.
-	 * @return integer Local UNIX time that matches requested date.
+	 * @return integer|null Local UNIX time that matches requested date or null if not a valid date.
 	 */
 	private function _validateDate($headerName, $headerValue) {
 		$time = strtotime($headerValue);
 		if(!$time) {
-			$exception = new CacheRequestException("Date value is invalid");
-			$exception->setHeaderName($headerName);
-			$exception->setHeaderValue($headerValue);
-			throw $exception;
+			return null;
 		}
 		return $time;
 	}
@@ -335,15 +325,11 @@ class CacheRequest {
 	 * 
 	 * @param string $headerName
 	 * @param string $headerValue
-	 * @throws CacheRequestException
-	 * @return integer Value of valid number.
+	 * @return integer|null Value of valid number or null if value is not numeric.
 	 */
 	private function _validateNumber($headerName, $headerValue) {
 		if(!is_numeric($headerValue)) {
-			$exception = new CacheRequestException("Value must be a number");
-			$exception->setHeaderName($headerName);
-			$exception->setHeaderValue($headerValue);
-			throw $exception;
+			return null;
 		}
 		$output = (integer) $headerValue;
 		// overflow protection
