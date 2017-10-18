@@ -54,7 +54,7 @@ class CacheValidator {
 			return 200;
 		}
 		
-		if($this->request->getMaxAge()!==null) {
+		if($this->request->getMaxAge()) {
 			if($age > $this->request->getMaxAge()) {
 				return 200;
 			}
