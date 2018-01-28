@@ -20,8 +20,6 @@ class CacheRequest {
 	
 	/**
 	 * Triggers private setters to populate information about caching request 
-	 * 
-	 * @throws CacheRequestException If cache headers contain invalid values.
 	 */
 	public function __construct() {
 		foreach($_SERVER as $name => $value) {
@@ -60,7 +58,6 @@ class CacheRequest {
 	 * if the entity corresponding to the If-Match value (a single entity tag) is no longer a representation of that resource.
 	 * 
 	 * @param string $etag A string value or "*" (which means ALL)
-	 * @throws CacheRequestException If etag is not single and strong.
 	 */
 	private function setMatchingEtag($etag) {
 		$this->matching_etag = $this->_validateEtag("If-Match", $etag);
@@ -100,7 +97,6 @@ class CacheRequest {
 	 * any message-body. Otherwise server MAY perform the requested method (HTTP 200)
 	 * 
 	 * @param string $date
-	 * @throws CacheRequestException If etag is not single and strong.
 	 */
 	private function setModifiedSince($date) {
 		$this->modified_since = $this->_validateDate("If-Modified-Since", $date);
@@ -119,7 +115,7 @@ class CacheRequest {
 	 * Signals if the requested resource has not been modified since the time specified in this field, the server MAY perform the requested method.
 	 * Otherwise a 412 (Precondition Failed) response will be returned without any message-body. 
 	 *  
-	 * @param unknown $date
+	 * @param string $date
 	 */
 	private function setNotModifiedSince($date) {
 		$this->not_modified_since= $this->_validateDate("If-Unmodified-Since", $date);

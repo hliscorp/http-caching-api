@@ -14,7 +14,7 @@ class CacheValidator {
 	/**
 	 * Validates resource according to IETF specifications.
 	 * 
-	 * @param CachedResource $resource Cached representation of requested resource.
+	 * @param Cacheable $cacheable Cached representation of requested resource.
 	 * @return integer HTTP status code
 	 */
 	public function validate(Cacheable $cacheable) {
