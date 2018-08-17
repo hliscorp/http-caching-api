@@ -110,7 +110,7 @@ class CacheValidator {
 		$noneMatch = $this->request->getNotMatchingEtag();
 		$modifiedSince = $this->request->getModifiedSince();
 		if(!$noneMatch && !$modifiedSince) {
-			return true;
+			return false;
 		}
 		$etagValidatorMatches = ($noneMatch && ($noneMatch == "*" || $noneMatch == $cacheable->getEtag()));
 		$lastModifiedValidatorMatches = ($modifiedSince && ($modifiedSince > time() || $cacheable->getTime() > $modifiedSince?false:true));
