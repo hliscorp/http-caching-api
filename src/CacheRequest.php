@@ -1,4 +1,5 @@
 <?php
+namespace Lucinda\Caching;
 /**
  * Encapsulates request caching headers logic. Feeds private setters based on headers received from client offers and offers 
  * public getters that correspond to each header received

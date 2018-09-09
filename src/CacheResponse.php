@@ -1,4 +1,5 @@
 <?php
+namespace Lucinda\Caching;
 /**
  * Encapsulates response caching headers logic. Expects to be fed by setters that generally correspond to a header and to output 
  * resulting headers that MUST later be loaded when  response is rendered (it doesn't send headers by itself).

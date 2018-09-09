@@ -1,4 +1,5 @@
 <?php
+namespace Lucinda\Caching;
 require_once("Cacheable.php");
 
 /**

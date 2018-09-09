@@ -1,4 +1,5 @@
 <?php
+namespace Lucinda\Caching;
 /**
  * Implements blueprints of a cacheable resource
  */
