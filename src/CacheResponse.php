@@ -1,8 +1,9 @@
 <?php
 namespace Lucinda\Caching;
+
 /**
- * Encapsulates response caching headers logic. Expects to be fed by setters that generally correspond to a header and to output 
- * resulting headers that MUST later be loaded when  response is rendered (it doesn't send headers by itself).
+ * Encapsulates HTTP caching headers that should be sent in response to a client request. To send them, developers should
+ * iterate through results of getHeaders() method.
  */
 class CacheResponse {
 	private $proxy_age;
@@ -145,7 +146,7 @@ class CacheResponse {
 	/**
 	 * Gets cache-specific response headers to iterate and load when response will be rendered
 	 * 
-	 * @return array[string:string] List of headers by name and value
+	 * @return string[string] List of headers by name and value
 	 */
 	public function getHeaders() {
 		$output = array();

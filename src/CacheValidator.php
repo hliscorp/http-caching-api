@@ -3,11 +3,16 @@ namespace Lucinda\Caching;
 require_once("Cacheable.php");
 
 /**
- * Performs validation of requested resource based on requested headers. 
+ * Performs validation of Cacheable representation of requested resource based on headers encapsulated by CacheRequest already. 
  */
 class CacheValidator {
 	private $request;
 	
+	/**
+	 * Constructs a cache validator.
+	 * 
+	 * @param CacheRequest $request
+	 */
 	public function __construct(CacheRequest $request) {
 		$this->request = $request;
 	}

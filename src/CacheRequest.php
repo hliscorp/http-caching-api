@@ -1,8 +1,9 @@
 <?php
 namespace Lucinda\Caching;
+
 /**
- * Encapsulates request caching headers logic. Feeds private setters based on headers received from client offers and offers 
- * public getters that correspond to each header received
+ * Encapsulates and semantically validates all HTTP caching headers that came along with client's request. Headers whose values
+ * are incorrect will be ignored!
  */
 class CacheRequest {
 	private $matching_etag;
@@ -20,7 +21,7 @@ class CacheRequest {
 	private $validatable = false;
 	
 	/**
-	 * Triggers private setters to populate information about caching request 
+	 * Triggers private setters to populate information about caching request extracted from $_SERVER superglobal 
 	 */
 	public function __construct() {
 		foreach($_SERVER as $name => $value) {

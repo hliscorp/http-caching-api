@@ -1,7 +1,8 @@
 <?php
 namespace Lucinda\Caching;
+
 /**
- * Implements blueprints of a cacheable resource
+ * Defines blueprints for algorithm that converts requested resource into an ETag or Last-Modified response header value
  */
 interface Cacheable {
 	/**
