@@ -10,4 +10,4 @@ The architecture of HTTP Caching API is very simple:
 - Caching-related communication between server and client is encapsulated by CacheResponse class. This class centralizes headers sent by server to client following later's request.
 
 More information here:<br/>
-http://www.lucinda-framework.com/http-caching-api
+http://www.lucinda-framework.com/http-caching
