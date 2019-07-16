@@ -209,7 +209,7 @@ class CacheRequest {
 	 * 
 	 * @return integer
 	 */
-	private function setMaxStaleAge($age) {
+	private function setMaxStaleAge($value) {
 		$this->max_stale = $this->_validateNumber("Cache-Control: max-stale", $value);
 	}
 	
