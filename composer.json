@@ -5,6 +5,9 @@
     "keywords": ["http","caching"],
     "homepage": "http://www.lucinda-framework.com/http-caching",
     "license": "MIT",
+    "require": {
+        "php": "^7.1"
+    },
     "autoload": {
     	"psr-4": {
         	"Lucinda\\Caching\\": "src/"
