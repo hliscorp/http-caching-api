@@ -2,131 +2,142 @@
 namespace Lucinda\Caching;
 
 /**
- * Performs validation of Cacheable representation of requested resource based on headers encapsulated by CacheRequest already. 
+ * Performs validation of Cacheable representation of requested resource based on headers encapsulated by Request already.
  */
-class CacheValidator {
-	private $request;
-	
-	/**
-	 * Constructs a cache validator.
-	 * 
-	 * @param CacheRequest $request
-	 */
-	public function __construct(CacheRequest $request) {
-		$this->request = $request;
-	}
-	
-	/**
-	 * Validates resource according to IETF specifications.
-	 * 
-	 * @param Cacheable $cacheable Cached representation of requested resource.
-	 * @return integer HTTP status code
-	 */
-	public function validate(Cacheable $cacheable) {
-		// only GET requests are cached
-		if(strtoupper($_SERVER['REQUEST_METHOD'])!="GET") {
-			return 200;
-		}
-		
-		// if no-cache or no-store @ cache-control, staleness is automatically assumed
-		if($this->request->isNoCache() || $this->request->isNoStore()) {
-			return 200;
-		}
-		
-		$age = time() - $cacheable->getTime();
-		$freshness = ($this->request->getMaxAge() && $this->request->getMaxAge()!=-1?$this->request->getMaxAge():0);
-		
-		if(!$this->isFreshEnough($age, $freshness)) {
-			return 200;
-		}
-		
-		// if tag no longer matches return
-		if($this->request->getMatchingEtag()) {
-			if($this->request->getMatchingEtag()!="*" && $this->request->getMatchingEtag()!=$cacheable->getEtag()) {
-				return 412;
-			}
-		}
-		
-		// if it has been modified since return
-		if($this->request->getNotModifiedSince()) {
-			if($cacheable->getTime() > $this->request->getNotModifiedSince()) {
-				return 412;
-			}
-		}
-		
-		// checks conditionals
-		if(!$this->allConditionalsMatch($cacheable)) {
-			return 200;
-		}
-		
-		if($this->request->getMaxAge()) {
-			if($age > $this->request->getMaxAge()) {
-				return 200;
-			}
-		}
-		
-		if($this->request->getMaxStaleAge()!==null) {
-			if($freshness > $this->request->getMaxStaleAge()) {
-				return 200;
-			}
-		}
-		
-		if($this->request->getMinFreshAge()!==null) {
-			if($this->request->getMinFreshAge()==-1) {
-				return 200;
-			}
-			if($freshness - $age < $this->request->getMinFreshAge()) {
-				return 200;
-			}
-		}
-		
-		return 304;
-	}
-	
-	/**
-	 * Checks if requested resource is fresh enough
-	 * 
-	 * @param integer $age Staleness age of requested resource.
-	 * @param integer $freshness Freshness age of requested resource.
-	 * @return boolean
-	 */
-	private function isFreshEnough($age, $freshness) {
-		if($age < $freshness) {
-			return true;
-		}
-		if ($this->request->getMaxStaleAge() == -1) {
-			return false;
-		}
-		$staleness = ($age <= $freshness?0:$age - $freshness);
-		if($this->request->getMaxStaleAge() && $this->request->getMaxStaleAge() > $staleness) {
-			return false;
-		} else {
-			return true;
-		}
-	}
-	
-	/**
-	 * Checks if IF-MATCH & IF-MODIFIED-SINCE conditions are both met.
-	 * 
-	 * @param Cacheable $cacheable Cached entry that matches requested resource.
-	 * @return boolean
-	 */
-	private function allConditionalsMatch(Cacheable $cacheable) {
-		$noneMatch = $this->request->getNotMatchingEtag();
-		$modifiedSince = $this->request->getModifiedSince();
-		if(!$noneMatch && !$modifiedSince) {
-			return false;
-		}
-		$etagValidatorMatches = ($noneMatch && ($noneMatch == "*" || $noneMatch == $cacheable->getEtag()));
-		$lastModifiedValidatorMatches = ($modifiedSince && ($modifiedSince > time() || $cacheable->getTime() > $modifiedSince?false:true));
-		if($noneMatch && $modifiedSince && !($etagValidatorMatches && $lastModifiedValidatorMatches)) {	
-			return false;
-		} else if($noneMatch && !$etagValidatorMatches) {
-			return false;
-		} else if($modifiedSince && !$lastModifiedValidatorMatches) {
-			return false;
-		} else {
-			return true;
-		}
-	}
+class CacheValidator
+{
+    private $request;
+
+    /**
+     * Constructs a cache validator.
+     *
+     * @param CacheRequest $request
+     */
+    public function __construct(CacheRequest $request)
+    {
+     	$this->request = $request;
+    }
+
+    /**
+     * Validates resource according to IETF specifications.
+     *
+     * @param Cacheable $cacheable Cached representation of requested resource.
+     * @return integer HTTP status code
+     */
+    public function validate(Cacheable $cacheable): int
+    {
+     	if ($this->request->isNoCache() || $this->request->isNoStore()) {
+            return 200;
+        }
+
+	$statusCode = $this->checkConditionals($cacheable, $_SERVER['REQUEST_METHOD']);
+
+        if ($statusCode==304 && $this->checkCacheControl($cacheable)) {
+            $statusCode = 200;
+        }
+
+	return $statusCode;
+    }
+
+    /**
+     * Matches If-Match, If-None-Match, If-Modified-Since, If-Unmodified-Since request headers to Cacheable and returns resulting http status code.
+     *
+     * @param Cacheable $cacheable
+     * @param string $requestMethod
+     * @return int
+     */
+    private function checkConditionals(Cacheable $cacheable, string $requestMethod): int
+    {
+     	$etag = $cacheable->getEtag();
+        $date = $cacheable->getTime();
+
+        // apply If-Match
+        $ifMatch = $this->request->getMatchingEtag();
+        if ($ifMatch) {
+            if (!$etag) {
+                return 412;
+            } elseif ($ifMatch == "*" || $etag == $ifMatch) {
+                return 200;
+            } else {
+                return 412;
+            }
+        }
+
+        // apply If-None-Match
+        $ifNoneMatch = $this->request->getNotMatchingEtag();
+        if ($ifNoneMatch) {
+            if (!$etag || !in_array($requestMethod, ["GET","HEAD"])) {
+                return 412;
+            } elseif ($ifNoneMatch == "*" || $ifNoneMatch != $etag) {
+                return 200;
+            } else {
+                return 304;
+            }
+        }
+
+        // apply If-Unmodified-Since
+        $ifUnmodifiedSince = $this->request->getNotModifiedSince();
+        if ($ifUnmodifiedSince) {
+            if (!$date || $date>$ifUnmodifiedSince) {// if modified since TIME
+                return 412;
+            } else { // if not modified since TIME
+                return 200;
+            }
+        }
+
+     	// apply If-Modified-Since
+        $ifModifiedSince = $this->request->getModifiedSince();
+        if ($ifModifiedSince && in_array($requestMethod, ["GET","HEAD"])) {
+            if (!$date) {
+                return 412;
+            } elseif ($date>$ifModifiedSince) { // if modified after TIME
+                return 200;
+            } elseif ($date==$ifModifiedSince) { // if modified at TIME
+                return 304;
+            } else { // if modified before TIME
+                // error situation (header date should NEVER be newer than source date) to answer with 200 OK, in order to force cache refresh
+                return 412;
+            }
+        }
+
+	return 200;
+    }
+
+    /**
+     * Matches Cache-Control request header to Cacheable to see if 304 HTTP status response should actually be HTTP status 200
+     *
+     * @param Cacheable $cacheable
+     * @return bool
+     */
+    private function checkCacheControl(Cacheable $cacheable): bool
+    {
+        $date = $cacheable->getTime();
+        if (!$date) {
+            // if resource has no time representation, ignore: max-age, max-stale, min-fresh
+            return false;
+        }
+
+        $age = time() - $date;
+
+        $maxAge = $this->request->getMaxAge();
+        if ($maxAge!==null && ($maxAge == -1 || $age > $maxAge)) {
+            return true;
+     	}
+
+        $freshness = ($maxAge?$maxAge:0);
+        $staleness = ($age <= $freshness?0:$age - $freshness);
+
+        $maxStaleAge = $this->request->getMaxStaleAge();
+        if ($maxStaleAge!==null && ($maxStaleAge == -1 || $maxStaleAge > $staleness || $freshness > $maxStaleAge)) {
+            return true;
+        }
+
+        $minFreshAge = $this->request->getMinFreshAge();
+        if ($minFreshAge!==null && ($minFreshAge == -1 || ($freshness - $age) < $minFreshAge)) {
+            return true;
+        }
+
+	return false;
+    }
 }
+
