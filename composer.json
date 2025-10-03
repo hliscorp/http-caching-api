@@ -1,8 +1,11 @@
 {
-    "name": "lucinda/http-caching",
+    "name": "hlis/http-caching",
     "type": "library",
     "description": "Creates a communication platform where servers and browsers talk in language of caching",
-    "keywords": ["http","caching"],
+    "keywords": [
+        "http",
+        "caching"
+    ],
     "homepage": "http://www.lucinda-framework.com/http-caching-api",
     "license": "MIT",
     "authors": [
