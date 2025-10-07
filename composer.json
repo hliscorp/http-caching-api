@@ -1,5 +1,5 @@
 {
-    "name": "hlis/http-caching",
+    "name": "lucinda/http-caching",
     "type": "library",
     "description": "Creates a communication platform where servers and browsers talk in language of caching",
     "keywords": [
